@@ -1,0 +1,76 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Council members and administrators.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "concejal"] },
+        "party": { "type": "string" },
+        "isCheckedIn": { "type": "boolean" },
+        "isBloquePresident": { "type": "boolean" }
+      },
+      "required": ["uid", "name", "role"]
+    },
+    "Expediente": {
+      "title": "Legislative Ordinance",
+      "description": "The document being voted on.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "author": { "type": "string" },
+        "submissionDate": { "type": "string" },
+        "status": { "type": "string", "enum": ["pendiente", "aprobado", "rechazado"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "status"]
+    },
+    "Vote": {
+      "title": "Vote Record",
+      "description": "Individual vote cast by a council member.",
+      "type": "object",
+      "properties": {
+        "expedienteId": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "vote": { "type": "string", "enum": ["si", "no", "abstencion"] },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["expedienteId", "userId", "vote"]
+    },
+    "SessionConfig": {
+      "title": "Session Configuration",
+      "description": "Real-time state of the current session.",
+      "type": "object",
+      "properties": {
+        "activeExpedienteId": { "type": "string" },
+        "timerEnd": { "type": "string", "format": "date-time" },
+        "isSessionActive": { "type": "boolean" },
+        "nextSessionDate": { "type": "string" },
+        "quorumRequired": { "type": "integer" }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles for council members."
+    },
+    "/expedientes/{expedienteId}": {
+      "schema": "Expediente",
+      "description": "Historical and active ordinances."
+    },
+    "/votos/{voteId}": {
+      "schema": "Vote",
+      "description": "All votes cast in the system."
+    },
+    "/config/session": {
+      "schema": "SessionConfig",
+      "description": "Global session state."
+    }
+  }
+}

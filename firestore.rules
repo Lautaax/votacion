@@ -1,0 +1,68 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'lautaroj.aguilera@gmail.com' ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      );
+    }
+
+    function isConcejal() {
+      let userPath = /databases/$(database)/documents/users/$(request.auth.uid);
+      return isSignedIn() && exists(userPath) && get(userPath).data.role == 'concejal';
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128;
+    }
+
+    // --- Users ---
+    match /users/{userId} {
+      allow read: if true;
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if (isSignedIn() && request.auth.uid == userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // --- Expedientes ---
+    match /expedientes/{expedienteId} {
+      allow read: if true;
+      allow create, update: if isAdmin();
+    }
+
+    // --- Votos ---
+    function isValidVote() {
+      let data = request.resource.data;
+      return data.vote in ['si', 'no', 'abstencion'] &&
+             data.userId == request.auth.uid &&
+             data.expedienteId is string;
+    }
+
+    match /votos/{voteId} {
+      allow read: if true;
+      allow create: if (isConcejal() || isAdmin()) && isValidVote();
+      allow update, delete: if false; // Votes are permanent
+    }
+
+    // --- Config ---
+    match /config/{configId} {
+      allow read: if true;
+      allow write: if isAdmin() || (isSignedIn() && request.auth.token.email == 'lautaroj.aguilera@gmail.com');
+    }
+  }
+}
